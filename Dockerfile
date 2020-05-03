@@ -1,5 +1,5 @@
 FROM linuxserver/nextcloud
 
-copy root/ /
+COPY root/ /
 
 ENTRYPOINT ["/init"]
