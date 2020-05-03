@@ -26,3 +26,32 @@ then
 fi
 
 # set up throttling rules
+### default to 1 Terabit download throttling which is effectively no throttling
+DNLD=${DOWNLOAD_BANDWIDTH:-1tbit}
+
+### default to 1 Terabit upload throttling whcih is effectively no throttling
+UPLD=${UPLOAD_BANDWIDTH:-1tbit}
+
+### throttle all traffic
+IP=0.0.0.0/0
+
+### name of the traffic control command.
+TC=/sbin/tc
+
+### the network interface we're planning on limiting bandwidth.
+IF=eth0
+
+### Filter options for limiting the intended interface.
+U32="$TC filter add dev $IF protocol ip parent 1:0 prio 1 u32"
+
+## use Hierarchical Token Bucket (HTB) to shape bandwidth
+### create the root qdisc
+$TC qdisc add dev $IF root handle 1: htb default 30
+
+### create child qdiscs for upload and download shaping
+$TC class add dev $IF parent 1: classid 1:1 htb rate $DNLD
+$TC class add dev $IF parent 1: classid 1:2 htb rate $UPLD
+
+### filter on matched interface for src and dest
+$U32 match ip dst $IP flowid 1:1
+$U32 match ip src $IP flowid 1:2
